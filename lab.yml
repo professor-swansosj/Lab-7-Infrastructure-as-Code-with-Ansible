@@ -1,0 +1,235 @@
+title: "Lab 7 — Infrastructure as Code with Ansible"
+course: "Software Defined Networking"
+module: "Network Automation Fundamentals"
+lab_number: 7
+time_estimate: "120–150 minutes"
+
+objectives:
+  - "Create and configure Ansible inventories for network devices."
+  - "Test connectivity and gather facts from Cisco devices (DevNet Always-On)."
+  - "Organize data with host_vars and group_vars for clean variable scope."
+  - "Author Jinja2 templates to generate VLAN and loopback configs."
+  - "Build playbooks to configure VLANs and loopbacks from structured data."
+  - "Implement a backup playbook that saves device configurations locally."
+  - "Apply Infrastructure as Code (IaC) principles for scalable network automation."
+
+python_version: "3.11"
+accounts: ["GitHub"]
+devices:
+  - "Cisco DevNet Always-On Sandbox — Catalyst 8k or 9k (SSH/NETCONF)"
+
+overview: >
+  Move from script-based automation to **Infrastructure as Code** with Ansible. You’ll define a
+  project with inventories, variables, templates, and playbooks; connect to a DevNet sandbox
+  device; deploy VLANs and loopbacks via Jinja2; and implement a timestamped backup workflow.
+  The result is idempotent, version-controlled automation you can scale and reuse.
+
+before_you_begin: >
+  Open the dev container; verify Ansible and Python are available. Create the folders `logs/`,
+  `backups/`, `templates/`, `group_vars/`, `host_vars/`, `playbooks/`, and `configs/` if missing.
+
+resources:
+  - { title: "Ansible Documentation", url: "https://docs.ansible.com/" }
+  - { title: "Ansible Galaxy — cisco.ios", url: "https://galaxy.ansible.com/cisco/ios" }
+  - { title: "Jinja2 Templates", url: "https://jinja.palletsprojects.com/" }
+  - { title: "YAML Syntax (YAML.org)", url: "https://yaml.org/spec/" }
+  - { title: "Cisco DevNet Sandboxes", url: "https://developer.cisco.com/site/sandbox/" }
+
+faq:
+  - q: "Playbook fails with unreachable or SSH auth errors."
+    a: "Verify inventory credentials, test manual SSH first, and set host_key_checking False in ansible.cfg."
+  - q: "YAML parsing errors on playbooks or vars."
+    a: "Use spaces (not tabs), quote strings with colons, and run `yamllint` locally."
+  - q: "Templates render but variables are empty."
+    a: "Check variable scope and names; test with `ansible-inventory --host <name>` and `debug` tasks."
+  - q: "Module `cisco.ios.ios_config` not found."
+    a: "Install the collection: `ansible-galaxy collection install cisco.ios` and verify with `ansible-galaxy collection list`."
+
+deliverables:
+  readme_summary: "Standardized README with objectives, overview, grading, and tips."
+  instructions_summary: "Stepwise INSTRUCTIONS for inventory, templates, playbooks, backups, and logs."
+  files:
+    root:
+      - "ansible.cfg"
+      - "inventory.yml"
+    vars:
+      - "group_vars/all.yml"
+      - "group_vars/routers.yml"
+      - "host_vars/router1.yml"
+    templates:
+      - "templates/vlans.j2"
+      - "templates/loopbacks.j2"
+    playbooks:
+      - "playbooks/test_connectivity.yml"
+      - "playbooks/configure_vlans.yml"
+      - "playbooks/configure_loopbacks.yml"
+      - "playbooks/backup_config.yml"
+      - "playbooks/deploy_all.yml"
+    generated:
+      - "configs/<inventory_hostname>_vlans.cfg"
+      - "configs/<inventory_hostname>_loopbacks.cfg"
+      - "backups/<inventory_hostname>_config_YYYYMMDD_HHMMSS.txt"
+      - "backups/backup_log.txt"
+    logs:
+      - "logs/setup.log"
+      - "logs/ansible_test.log"
+      - "logs/vlan_deployment.log"
+      - "logs/loopback_deployment.log"
+      - "logs/backup_operations.log"
+
+grading:
+  total_points: 100
+  rows:
+    - { step: "Environment Setup", requirement: "Dev container functional; Ansible installed", points: 8 }
+    - { step: "Inventory & Config", requirement: "Valid ansible.cfg and inventory.yml", points: 10 }
+    - { step: "Connectivity Testing", requirement: "Ping + facts gathering succeed", points: 10 }
+    - { step: "Variable Structure", requirement: "Correct group_vars and host_vars organization", points: 12 }
+    - { step: "Jinja2 Templates", requirement: "Working VLAN and loopback templates", points: 15 }
+    - { step: "VLAN Deployment", requirement: "VLAN configuration applied and verified", points: 12 }
+    - { step: "Loopback Deployment", requirement: "Loopbacks applied and verified", points: 12 }
+    - { step: "Backup Implementation", requirement: "Timestamped backups and logs", points: 15 }
+    - { step: "Logging & Docs", requirement: "All required log entries and structure", points: 8 }
+    - { step: "Code Quality", requirement: "Clean YAML, commits, and error handling", points: 8 }
+
+tips:
+  - title: "Inventory sanity"
+    symptom: "Ping fails to all hosts"
+    fix: "Run `ansible-inventory --list` and confirm `ansible_host`, user, and connection vars."
+  - title: "Template paths"
+    symptom: "template not found"
+    fix: "Use paths relative to the playbook (`../templates/*.j2`) or set `template` task paths carefully."
+  - title: "Privilege issues"
+    symptom: "Auth failed when applying configs"
+    fix: "Ensure device user has privileges; set `ansible_become: yes` if needed."
+
+autograder:
+  log_path: "logs/*.log"
+  required_markers:
+    - "LAB7_START"
+    - "DEVCONTAINER_READY"
+    - "INVENTORY_CREATED"
+    - "CONNECTIVITY_TEST"
+    - "VARIABLES_CREATED"
+    - "VLAN_DEPLOYED"
+    - "LOOPBACK_DEPLOYED"
+    - "BACKUP_CREATED"
+    - "LAB7_COMPLETE"
+
+submission_checklist:
+  - "ansible.cfg and inventory.yml exist and validate."
+  - "group_vars and host_vars load correctly for router1."
+  - "templates render without errors and produce device configs under configs/."
+  - "playbooks run without tracebacks; VLANs and loopbacks verified via show commands."
+  - "backups directory contains timestamped config files; backup_log.txt updated."
+  - "all required logs exist with specified markers."
+  - "README and INSTRUCTIONS rendered from template; PR passes Verify Docs."
+
+steps:
+  - title: "Clone repository and setup"
+    goal: "Get the lab locally and initialize logs."
+    actions: |
+      Clone your Classroom repo and change into it. Ensure `logs/` exists and write an initial
+      `LAB7_START` line into `logs/setup.log`.
+    done_when: |
+      - You are in the repo root.
+      - `logs/setup.log` contains `LAB7_START`.
+    log_marker: "LAB7_START"
+
+  - title: "Open dev container and verify"
+    goal: "Use the standardized environment with Ansible and collections."
+    actions: |
+      Reopen in container. Verify Ansible version (2.14+), confirm `cisco.ios` is installed,
+      and log a `DEVCONTAINER_READY` line with version info to `logs/setup.log`.
+    done_when: |
+      - Ansible version prints successfully.
+      - `logs/setup.log` shows `DEVCONTAINER_READY ...`.
+    log_marker: "DEVCONTAINER_READY"
+
+  - title: "Create inventory and ansible.cfg"
+    goal: "Target the DevNet sandbox device."
+    actions: |
+      Create `ansible.cfg` with local inventory path, disabled host key checking, and YAML callback.
+      Create `inventory.yml` with a `routers` group and `router1` host using sandbox details.
+      Run `ansible-inventory --list` and a simple `ansible all -m ping`.
+    done_when: |
+      - Inventory lists hosts.
+      - Ping succeeds to router1.
+      - `logs/ansible_test.log` records `INVENTORY_CREATED`.
+    log_marker: "INVENTORY_CREATED"
+
+  - title: "Connectivity test and facts"
+    goal: "Validate access and capture device facts."
+    actions: |
+      Author `playbooks/test_connectivity.yml` to ping and gather facts using `cisco.ios.ios_facts`,
+      then append a `CONNECTIVITY_TEST` line to `logs/ansible_test.log`.
+    done_when: |
+      - Playbook finishes successfully and prints model/version.
+      - Log shows `CONNECTIVITY_TEST` entries.
+    log_marker: "CONNECTIVITY_TEST"
+
+  - title: "Variable structure (group_vars and host_vars)"
+    goal: "Centralize shared data and per-host overrides."
+    actions: |
+      Create `group_vars/all.yml` and `group_vars/routers.yml` for global and router-group data
+      (e.g., DNS/NTP, default VLANs, standard loopbacks). Create `host_vars/router1.yml` for
+      device-specific loopbacks and VLANs. Verify access with `ansible-inventory --host router1`.
+    done_when: |
+      - Files exist with valid YAML.
+      - `logs/ansible_test.log` has `VARIABLES_CREATED`.
+    log_marker: "VARIABLES_CREATED"
+
+  - title: "Jinja2 templates"
+    goal: "Generate VLAN and loopback configs from variables."
+    actions: |
+      Create `templates/vlans.j2` and `templates/loopbacks.j2`. Dry-run render via a small test
+      play to write outputs under `./configs/`.
+    done_when: |
+      - Both templates render.
+      - Generated files contain data from group and host vars.
+    log_marker: "TEMPLATES_OK"
+
+  - title: "Deploy VLAN configuration"
+    goal: "Apply VLANs and verify on device."
+    actions: |
+      Create `playbooks/configure_vlans.yml` to render template to `configs/` and apply with
+      `cisco.ios.ios_config`. Verify via `show vlan brief` and log `VLAN_DEPLOYED`.
+    done_when: |
+      - VLANs appear on device.
+      - `logs/vlan_deployment.log` shows `VLAN_DEPLOYED`.
+    log_marker: "VLAN_DEPLOYED"
+
+  - title: "Deploy loopback interfaces"
+    goal: "Apply loopbacks and verify."
+    actions: |
+      Create `playbooks/configure_loopbacks.yml` to render and apply Loopback interfaces, verify
+      with `show ip interface brief | include Loopback`, and log `LOOPBACK_DEPLOYED`.
+    done_when: |
+      - Loopbacks appear on device.
+      - `logs/loopback_deployment.log` shows `LOOPBACK_DEPLOYED`.
+    log_marker: "LOOPBACK_DEPLOYED"
+
+  - title: "Backup device configuration"
+    goal: "Save timestamped running config and summarize."
+    actions: |
+      Create `playbooks/backup_config.yml` to write device backups into `backups/` with a timestamp
+      and update `backups/backup_log.txt`. Log `BACKUP_CREATED` to `logs/backup_operations.log`.
+    done_when: |
+      - Backup files exist with timestamps.
+      - `backup_log.txt` updated.
+      - `logs/backup_operations.log` shows `BACKUP_CREATED`.
+    log_marker: "BACKUP_CREATED"
+
+  - title: "Master run and submit"
+    goal: "Execute end-to-end and finalize."
+    actions: |
+      Create `playbooks/deploy_all.yml` that imports the other playbooks. Run it, confirm device
+      state matches rendered configs, and add a final `LAB7_COMPLETE` line with counts.
+      Commit all files, push, and open a PR to `main`.
+    done_when: |
+      - All playbooks execute without errors.
+      - Required artifacts and logs exist.
+      - PR opens and Verify Docs is green.
+    log_marker: "LAB7_COMPLETE"
+
+license: "© 2025 Your Name — Classroom use."
+
