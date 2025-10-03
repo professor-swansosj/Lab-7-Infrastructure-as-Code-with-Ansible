@@ -4,84 +4,245 @@
 **Module:** Network Automation Fundamentals • **Lab #:** 7  
 **Estimated Time:** 120–150 minutes
 
-## Objectives
-- Create and configure Ansible inventories for network devices.
-- Test connectivity and gather facts from Cisco devices (DevNet Always-On).
-- Organize data with host_vars and group_vars for clean variable scope.
-- Author Jinja2 templates to generate VLAN and loopback configs.
-- Build playbooks to configure VLANs and loopbacks from structured data.
-- Implement a backup playbook that saves device configurations locally.
-- Apply Infrastructure as Code (IaC) principles for scalable network automation.
+## Repository structure
 
-## Prerequisites
-- Python 3.11 (via the provided dev container)
-- Accounts: GitHub
-- Devices/Sandboxes: Cisco DevNet Always-On Sandbox — Catalyst 8k or 9k (SSH/NETCONF)
-
-## Overview
-Move from script-based automation to **Infrastructure as Code** with Ansible. You’ll define a project with inventories, variables, templates, and playbooks; connect to a DevNet sandbox device; deploy VLANs and loopbacks via Jinja2; and implement a timestamped backup workflow. The result is idempotent, version-controlled automation you can scale and reuse.
-
-
-## Resources
-- [Ansible Documentation](https://docs.ansible.com/)- [Ansible Galaxy — cisco.ios](https://galaxy.ansible.com/cisco/ios)- [Jinja2 Templates](https://jinja.palletsprojects.com/)- [YAML Syntax (YAML.org)](https://yaml.org/spec/)- [Cisco DevNet Sandboxes](https://developer.cisco.com/site/sandbox/)
-
-## FAQ
-**Q:** Playbook fails with unreachable or SSH auth errors.  
-**A:** Verify inventory credentials, test manual SSH first, and set host_key_checking False in ansible.cfg.
-
-**Q:** YAML parsing errors on playbooks or vars.  
-**A:** Use spaces (not tabs), quote strings with colons, and run `yamllint` locally.
-
-**Q:** Templates render but variables are empty.  
-**A:** Check variable scope and names; test with `ansible-inventory --host <name>` and `debug` tasks.
-
-**Q:** Module `cisco.ios.ios_config` not found.  
-**A:** Install the collection: `ansible-galaxy collection install cisco.ios` and verify with `ansible-galaxy collection list`.
+```text
+Lab-7-Infrastructure-as-Code-with-Ansible
+├── .devcontainer
+│   └── devcontainer.json
+├── .gitignore
+├── .markdownlint.json
+├── .markdownlintignore
+├── .pettierrc.yml
+├── INSTRUCTIONS.backup.md
+├── INSTRUCTIONS.md
+├── LICENSE
+├── README.backup.md
+├── README.md
+├── data
+│   └── inventory.example.yml
+├── lab.yml
+├── prettierrc.yml
+├── requirements.txt
+└── src
+    ├── __init__.py
+    └── main.py
+```
 
 
+## Lab Topics
 
-## Deliverables
-- Standardized README with objectives, overview, grading, and tips.
-- Stepwise INSTRUCTIONS for inventory, templates, playbooks, backups, and logs.
-- Grading: **100 points**
+### Introduction to Ansible
+Ansible is an open-source automation tool that simplifies the management and configuration of
+network devices and IT infrastructure. It uses a simple, human-readable language (YAML) to
+describe automation tasks in playbooks. Ansible operates in an agentless manner, connecting
+to devices over SSH or APIs, making it easy to deploy and manage configurations across
+multiple devices simultaneously.
 
-## Grading Breakdown
-| Step | Requirement | Points |
-|---|---|---|
-| Environment Setup | Dev container functional; Ansible installed | 8 |
-| Inventory & Config | Valid ansible.cfg and inventory.yml | 10 |
-| Connectivity Testing | Ping + facts gathering succeed | 10 |
-| Variable Structure | Correct group_vars and host_vars organization | 12 |
-| Jinja2 Templates | Working VLAN and loopback templates | 15 |
-| VLAN Deployment | VLAN configuration applied and verified | 12 |
-| Loopback Deployment | Loopbacks applied and verified | 12 |
-| Backup Implementation | Timestamped backups and logs | 15 |
-| Logging & Docs | All required log entries and structure | 8 |
-| Code Quality | Clean YAML, commits, and error handling | 8 |
-| **Total** |  | **100** |
+Key features of Ansible include:
+- **Idempotency**: Ensures that applying the same configuration multiple times results in the
+  same state without unintended changes.
+- **Extensibility**: Supports a wide range of modules for different platforms, including
+  network devices from vendors like Cisco, Juniper, and Arista.
+- **Inventory Management**: Allows users to define groups of hosts and their variables in
+  inventory files.
+- **Templates**: Uses Jinja2 templating to create dynamic configuration files based on
+  variables.
+- **Playbooks**: YAML files that define a series of tasks to be executed on specified hosts.
 
-## 🔧 Troubleshooting & Pro Tips
-**Inventory sanity**  
-*Symptom:* Ping fails to all hosts  
-*Fix:* Run `ansible-inventory --list` and confirm `ansible_host`, user, and connection vars.
-
-**Template paths**  
-*Symptom:* template not found  
-*Fix:* Use paths relative to the playbook (`../templates/*.j2`) or set `template` task paths carefully.
-
-**Privilege issues**  
-*Symptom:* Auth failed when applying configs  
-*Fix:* Ensure device user has privileges; set `ansible_become: yes` if needed.
+Ansible is widely used in network automation for tasks such as configuration management,
+software updates, and network provisioning, enabling network engineers to automate repetitive
+tasks and improve operational efficiency.
 
 
+### Ansible Project Structure
+An Ansible project typically follows a structured directory layout to organize playbooks,
+inventories, variables, templates, and other related files. A common structure includes:
 
-## Autograder Notes
-- Log file: `logs/*.log`
-- Required markers: `LAB7_START`, `DEVCONTAINER_READY`, `INVENTORY_CREATED`, `CONNECTIVITY_TEST`, `VARIABLES_CREATED`, `VLAN_DEPLOYED`, `LOOPBACK_DEPLOYED`, `BACKUP_CREATED`, `LAB7_COMPLETE`
+This structure helps maintain clarity and organization, making it easier to manage complex
+automation tasks across multiple devices and environments.
+
+
+```bash
+ansible.cfg               # Configuration file for Ansible settings
+inventory.yml             # Inventory file defining hosts and groups
+group_vars/               # Directory for group-specific variables
+    all.yml               # Variables applied to all hosts
+    routers.yml           # Variables specific to router group
+host_vars/                # Directory for host-specific variables
+    router1.yml           # Variables specific to router1
+templates/                # Directory for Jinja2 templates
+    vlans.j2              # Template for VLAN configuration
+    loopbacks.j2          # Template for Loopback interfaces
+playbooks/                # Directory for Ansible playbooks
+    test_connectivity.yml  # Playbook to test connectivity and gather facts
+    configure_vlans.yml    # Playbook to configure VLANs
+    configure_loopbacks.yml # Playbook to configure Loopback interfaces
+    backup_config.yml       # Playbook to backup device configurations
+    deploy_all.yml          # Master playbook to run all tasks
+configs/                  # Directory for generated configuration files
+backups/                  # Directory for device configuration backups
+logs/                     # Directory for log files
+
+```
+
+### The Ansible Configuration File (ansible.cfg)
+The `ansible.cfg` file is the main configuration file for Ansible, allowing users to customize
+various settings that affect how Ansible operates. It can be placed in the project root,
+user's home directory, or system-wide. Key sections and options include:
+
+- **[defaults]**: Contains general settings such as inventory file location, remote user,
+  and callback plugins.
+- **[privilege_escalation]**: Configures settings for privilege escalation methods like sudo.
+- **[ssh_connection]**: Manages SSH connection parameters, including control paths and timeouts.
+- **[paramiko_connection]**: Settings specific to Paramiko SSH connections.
+- **[logging]**: Defines log file location and format for Ansible's logging output.
+
+Example `ansible.cfg` content:
+
+
+```ini
+[defaults]
+inventory = ./inventory.yml
+host_key_checking = False
+callback_whitelist = yaml # Enables YAML output for better readability
+[privilege_escalation]
+become = True
+become_method = enable
+become_user = root
+[ssh_connection]
+control_path = %(directory)s/%%h-%%r
+[logging]
+log_path = ./logs/ansible.log
+log_level = info
+
+```
+
+### The Inventory File (inventory.yml)
+The `inventory.yml` file is a crucial component of Ansible, as it defines the hosts and groups
+of hosts on which automation tasks will be executed. The inventory can be static (defined in
+a YAML file) or dynamic (generated by an external script or plugin). Key elements include:
+
+- **Hosts**: Individual machines or devices managed by Ansible, identified by their IP address
+  or hostname.
+- **Groups**: Collections of hosts that share common characteristics, allowing for easier
+  management and targeting of tasks.
+- **Variables**: Host-specific or group-specific variables that customize the behavior of
+  playbooks and roles.
+
+Example `inventory.yml` content:
+
+
+```yaml
+all:
+  children:
+    switches:
+      hosts:
+        switch1:
+          ansible_host: 192.0.2.1
+          ansible_user: admin
+          ansible_password: password
+        switch2:
+          ansible_host: 192.0.2.2
+          ansible_user: admin
+          ansible_password: password
+    routers:
+      hosts:
+        router1:
+          ansible_host: 192.0.2.3
+          ansible_user: admin
+          ansible_password: password
+        router2:
+          ansible_host: 192.0.2.4
+          ansible_user: admin
+          ansible_password: password
+
+```
+
+### Host Variables `host_vars/`
+The `host_vars/` directory is used to define variables that are specific to individual hosts.
+This allows for greater customization and flexibility in playbooks and roles. Each file in
+this directory should be named after the corresponding host and contain valid YAML.
+
+Example `host_vars/switch1.yml` content:
+
+
+```yaml
+ansible_host: 192.0.2.1
+ansible_user: admin
+ansible_password: password
+
+```
+
+### Group Variables `group_vars/`
+The `group_vars/` directory is used to define variables that are specific to groups of hosts.
+This allows for easier management of common settings across multiple hosts. Each file in
+this directory should be named after the corresponding group and contain valid YAML.
+
+Example `group_vars/switches.yml` content:
+
+
+```yaml
+ansible_host: 192.0.2.1
+ansible_user: admin
+ansible_password: password
+
+```
+
+### Jinja2 Templates
+Jinja2 is a powerful templating engine used in Ansible to create dynamic configuration files
+based on variables. Templates are stored in the `templates/` directory and typically have a
+`.j2` file extension. They allow for the inclusion of logic, loops, and conditionals to
+generate configurations tailored to specific hosts or groups.
+
+Example `templates/switch_config.j2` content:
+
+
+```jinja2
+hostname {{ inventory_hostname }}
+interface Vlan{{ vlan_id }}
+  ip address {{ ip_address }} {{ subnet_mask }}
+!
+router ospf 1
+  network {{ network }} area 0
+!
+
+```
+
+### Ansible Galaxy Collections
+Ansible Galaxy is a repository for Ansible roles and collections, which are pre-packaged
+sets of modules, plugins, and roles that extend Ansible's functionality. Collections are
+particularly useful for managing specific platforms or technologies, such as network devices.
+
+To use a collection, you first need to install it using the `ansible-galaxy` command. For
+example, to install the Cisco IOS collection, you would run:
+
+```bash
+ansible-galaxy collection install cisco.ios
+```
+
+Once installed, you can use the modules provided by the collection in your playbooks.
+For example, the `cisco.ios.ios_config` module can be used to manage configurations on
+Cisco IOS devices.
+
+Example playbook snippet using a collection module:
+
+
+```yaml
+- name: Configure VLANs on Cisco IOS devices
+  hosts: switches
+  gather_facts: no
+  tasks:
+    - name: Apply VLAN configuration
+      cisco.ios.ios_config:
+        lines:
+          - vlan {{ item.id }}
+          - name {{ item.name }}
+        with_items: "{{ vlans }}"
+
+```
+
+
 
 ## License
 © 2025 Your Name — Classroom use.
-
-# HAPPY CODING!
-
-**Sincerely, Professor Swanson**
