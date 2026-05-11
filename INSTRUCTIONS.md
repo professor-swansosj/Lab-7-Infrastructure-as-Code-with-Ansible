@@ -18,6 +18,20 @@
 - GitHub Classroom workflow (clone, commit, push, PR).
 - Credentials for both sandboxes (do NOT hardcode in repo).
 
+## Table of Contents
+
+1. [Step 1 — Clone the Repository](#step-1--clone-the-repository)
+2. [Step 2 — Dev Container & Collections](#step-2--dev-container--collections)
+3. [Step 3 — Project Scaffold & ansible.cfg](#step-3--project-scaffold--ansiblecfg)
+4. [Step 4 — Inventory for Two Devices](#step-4--inventory-for-two-devices)
+5. [Step 5 — Group Vars & Host Vars](#step-5--group-vars--host-vars)
+6. [Step 6 — Two Templates (Jinja2)](#step-6--two-templates-jinja2)
+7. [Step 7 — Render Configs Locally](#step-7--render-configs-locally)
+8. [Step 8 — Dry-Run (Check Mode)](#step-8--dry-run-check-mode)
+9. [Step 9 — Deploy & Post-Check](#step-9--deploy--post-check)
+10. [Step 10 — Idempotency Run](#step-10--idempotency-run)
+11. [Step 11 — Finalize & Submit](#step-11--finalize--submit)
+
 ## Overview
 You will build a real Ansible IaC project for two IOS-XE devices (Cat8k and Cat9k). Create a proper scaffold (inventory, ansible.cfg, group_vars, host_vars, templates, playbooks). Define some loopback interfaces in group_vars (shared) and some in host_vars (device-specific), render configs from two Jinja2 templates, validate with check mode, then deploy and post-check. Save rendered configs, dry-run diffs, and post-check command outputs to the repo. Ensure a final idempotency run reports no changes.
 
@@ -26,7 +40,12 @@ You will build a real Ansible IaC project for two IOS-XE devices (Cat8k and Cat9
 
 
 ## Resources
-- [Ansible Documentation](https://docs.ansible.com/)- [cisco.ios Ansible Collection](https://docs.ansible.com/ansible/latest/collections/cisco/ios/)- [ansible.netcommon Collection](https://docs.ansible.com/ansible/latest/collections/ansible/netcommon/)- [Jinja2 Templates](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html)- [Check Mode & Idempotency](https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html#check-mode)
+
+- [Ansible Documentation](https://docs.ansible.com/)
+- [cisco.ios Ansible Collection](https://docs.ansible.com/ansible/latest/collections/cisco/ios/)
+- [ansible.netcommon Collection](https://docs.ansible.com/ansible/latest/collections/ansible/netcommon/)
+- [Jinja2 Templates](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html)
+- [Check Mode & Idempotency](https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html#check-mode)
 ## Deliverables
 - Ansible project scaffold: `ansible.cfg`, `inventories/`, `group_vars/`, `host_vars/`, `playbooks/`, `templates/`, `requirements.yml`.
 - `group_vars/all.yml` (shared settings + shared loopbacks), optional group files (e.g., `group_vars/iosxe.yml`).
@@ -35,6 +54,7 @@ You will build a real Ansible IaC project for two IOS-XE devices (Cat8k and Cat9
 - Rendered configs under `data/rendered/<inventory_hostname>.cfg`.
 - Dry-run diffs under `data/dryrun/<inventory_hostname>.diff`.
 - Post-check outputs under `data/postcheck/<inventory_hostname>.txt`.
+- `data/idempotency_run.txt` — output of the second deploy run showing `changed=0` for all tasks.
 - `logs/lab7.log` with required markers.
 - Pull request open to `main` with all artifacts committed.
 - Grading: **75 points**
@@ -209,11 +229,14 @@ Save outputs to `data/postcheck/<host>.txt`. Log `DEPLOY_OK` and `POSTCHECK_OK`.
 
 **What to do:**  
 Re-run `ansible-playbook playbooks/deploy.yml` and confirm `changed=0` for all tasks.
-Append `IDEMPOTENT_OK` to the log if no changes were required.
+Save the playbook output (including the PLAY RECAP showing `changed=0`) to `data/idempotency_run.txt`
+(e.g., `ansible-playbook playbooks/deploy.yml | tee data/idempotency_run.txt`).
+Append `IDEMPOTENT_OK` to the log only if all tasks reported zero changes.
 
 
 **You're done when:**  
 - Idempotent run shows zero changes.
+- `data/idempotency_run.txt` exists and contains `changed=0`.
 
 
 **Log marker to add:**  
@@ -271,13 +294,16 @@ Open a pull request targeting `main`.
 | Step 7 | Configs rendered for both devices (`RENDER_OK:<host>`) | 8 |
 | Step 8 | Dry-run diffs captured (`DRYRUN_OK`) | 8 |
 | Step 9 | Deployed and post-checked on both devices (`DEPLOY_OK`, `POSTCHECK_OK`) | 12 |
-| Step 10 | Idempotency proven (`IDEMPOTENT_OK`) | 6 |
-| Submission | PR open; `LAB7_START`/`LAB7_END`; log hygiene | 2 |
+| Step 10 | Idempotency marker after deploy (`IDEMPOTENT_OK`) | 1 |
+| Step 10 | Idempotency evidence file (`data/idempotency_run.txt` with `changed=0`) | 5 |
+| Submission | PR open; `LAB7_START`/`LAB7_END` in correct order; log hygiene | 2 |
 | **Total** |  | **75** |
 
 ## Autograder Notes
 - Log file: `logs/lab7.log`
 - Required markers: `LAB7_START`, `[STEP 2] Dev Container Started`, `GALAXY_OK: cisco.ios`, `GALAXY_OK: ansible.netcommon`, `PROJECT_SCAFFOLD_OK`, `INVENTORY_OK`, `VARS_OK`, `TEMPLATES_OK`, `RENDER_OK`, `DRYRUN_OK`, `DEPLOY_OK`, `POSTCHECK_OK`, `IDEMPOTENT_OK`, `LAB7_END`
+- Required artifact: `data/idempotency_run.txt` containing `changed=0` from the second deploy run.
+- Log sequence requirements: `IDEMPOTENT_OK` must appear after `DEPLOY_OK`, and `LAB7_END` must appear after `IDEMPOTENT_OK`.
 
 ## Submission Checklist
 - [ ] Inventory lists Cat8k and Cat9k and connects with `network_cli`.

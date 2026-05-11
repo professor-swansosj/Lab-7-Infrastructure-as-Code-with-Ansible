@@ -1,0 +1,256 @@
+name: GitHub Classroom Autograding
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Environment & Galaxy (8)
+        id: env_galaxy
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Environment & Galaxy collections (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "[STEP 2] Dev Container Started" "$LOG_FILE";
+            grep -Fq "GALAXY_OK: cisco.ios" "$LOG_FILE";
+            grep -Fq "GALAXY_OK: ansible.netcommon" "$LOG_FILE";
+            [[ -f "requirements.yml" ]];
+            grep -Fq "cisco.ios" requirements.yml;
+            grep -Fq "ansible.netcommon" requirements.yml'
+          timeout: 10
+          max-score: 8
+
+      - name: Project Scaffold & ansible.cfg (7)
+        id: scaffold
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Project scaffold + ansible.cfg (7)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            [[ -f "ansible.cfg" ]];
+            grep -Fq "PROJECT_SCAFFOLD_OK" "$LOG_FILE";
+            grep -Fiq "inventory" ansible.cfg;
+            grep -Fiq "host_key_checking" ansible.cfg'
+          timeout: 10
+          max-score: 7
+
+      - name: Inventory (8)
+        id: inventory
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Two-device inventory loaded (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "INVENTORY_OK" "$LOG_FILE";
+            INV_FILE=$(find inventories -maxdepth 2 -type f \( -name "*.yml" -o -name "*.yaml" -o -name "inventory" -o -name "hosts" \) | head -n1);
+            [[ -n "$INV_FILE" ]];
+            grep -Fiq "cat8k" "$INV_FILE";
+            grep -Fiq "cat9k" "$INV_FILE";
+            grep -Fq "cisco.ios.ios" "$INV_FILE"'
+          timeout: 10
+          max-score: 8
+
+      - name: Group & Host Vars (8)
+        id: vars
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: group_vars + host_vars defined (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "VARS_OK" "$LOG_FILE";
+            [[ -f "group_vars/all.yml" || -f "group_vars/all.yaml" ]];
+            GROUP_FILE=$(ls group_vars/all.yml group_vars/all.yaml 2>/dev/null | head -n1);
+            grep -Fq "loopbacks_shared" "$GROUP_FILE";
+            CAT8K_FILE=$(ls host_vars/cat8k.yml host_vars/cat8k.yaml 2>/dev/null | head -n1);
+            CAT9K_FILE=$(ls host_vars/cat9k.yml host_vars/cat9k.yaml 2>/dev/null | head -n1);
+            [[ -n "$CAT8K_FILE" && -n "$CAT9K_FILE" ]];
+            grep -Fq "loopbacks_host" "$CAT8K_FILE";
+            grep -Fq "loopbacks_host" "$CAT9K_FILE"'
+          timeout: 10
+          max-score: 8
+
+      - name: Jinja2 Templates (8)
+        id: templates
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Two Jinja2 templates complete (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "TEMPLATES_OK" "$LOG_FILE";
+            [[ -s "templates/base.j2" ]];
+            [[ -s "templates/loopbacks.j2" ]];
+            grep -Eq "\\{\\{|\\{%" templates/base.j2;
+            grep -Eq "\\{\\{|\\{%" templates/loopbacks.j2'
+          timeout: 10
+          max-score: 8
+
+      - name: Render Configs (8)
+        id: render
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Rendered configs for both devices (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "RENDER_OK" "$LOG_FILE";
+            [[ -s "data/rendered/cat8k.cfg" ]];
+            [[ -s "data/rendered/cat9k.cfg" ]];
+            grep -Fiq "Loopback" data/rendered/cat8k.cfg;
+            grep -Fiq "Loopback" data/rendered/cat9k.cfg'
+          timeout: 10
+          max-score: 8
+
+      - name: Dry-Run Diffs (8)
+        id: dryrun
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Dry-run diffs captured (8)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "DRYRUN_OK" "$LOG_FILE";
+            [[ -s "data/dryrun/cat8k.diff" ]];
+            [[ -s "data/dryrun/cat9k.diff" ]]'
+          timeout: 10
+          max-score: 8
+
+      - name: Deploy & Post-Check (12)
+        id: deploy_postcheck
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Deploy + post-check on both devices (12)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Fq "DEPLOY_OK" "$LOG_FILE";
+            grep -Fq "POSTCHECK_OK" "$LOG_FILE";
+            [[ -s "data/postcheck/cat8k.txt" ]];
+            [[ -s "data/postcheck/cat9k.txt" ]];
+            grep -Fiq "Loopback" data/postcheck/cat8k.txt;
+            grep -Fiq "Loopback" data/postcheck/cat9k.txt'
+          timeout: 10
+          max-score: 12
+
+      - name: Idempotency Marker Sequence (1)
+        id: idempotent_sequence
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: IDEMPOTENT_OK appears after DEPLOY_OK (1)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            DEPLOY_LINE=$(grep -n "DEPLOY_OK" "$LOG_FILE" | head -n1 | cut -d: -f1);
+            IDEMP_LINE=$(grep -n "IDEMPOTENT_OK" "$LOG_FILE" | head -n1 | cut -d: -f1);
+            [[ -n "$DEPLOY_LINE" && -n "$IDEMP_LINE" ]];
+            [[ "$IDEMP_LINE" -gt "$DEPLOY_LINE" ]]'
+          timeout: 10
+          max-score: 1
+
+      - name: Idempotency Evidence File (5)
+        id: idempotent_evidence
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Idempotency evidence file with changed=0 (5)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            [[ -s "data/idempotency_run.txt" ]];
+            grep -Fq "changed=0" data/idempotency_run.txt'
+          timeout: 10
+          max-score: 5
+
+      - name: Submission Markers (2)
+        id: submission
+        if: always()
+        continue-on-error: true
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: LAB7_START + LAB7_END with proper sequence (2)
+          setup-command: ''
+          command: >-
+            bash -lc 'set -euo pipefail;
+            LOG_FILE="logs/lab7.log";
+            [[ -f "$LOG_FILE" ]];
+            grep -Eq "LAB7[-_]START" "$LOG_FILE";
+            grep -Eq "LAB7[-_]END" "$LOG_FILE";
+            IDEMP_LINE=$(grep -n "IDEMPOTENT_OK" "$LOG_FILE" | head -n1 | cut -d: -f1);
+            END_LINE=$(grep -nE "LAB7[-_]END" "$LOG_FILE" | head -n1 | cut -d: -f1);
+            [[ -n "$IDEMP_LINE" && -n "$END_LINE" ]];
+            [[ "$END_LINE" -gt "$IDEMP_LINE" ]]'
+          timeout: 10
+          max-score: 2
+
+      - name: Autograding Reporter
+        if: always()
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          ENV_GALAXY_RESULTS: "${{ steps.env_galaxy.outputs.result }}"
+          SCAFFOLD_RESULTS: "${{ steps.scaffold.outputs.result }}"
+          INVENTORY_RESULTS: "${{ steps.inventory.outputs.result }}"
+          VARS_RESULTS: "${{ steps.vars.outputs.result }}"
+          TEMPLATES_RESULTS: "${{ steps.templates.outputs.result }}"
+          RENDER_RESULTS: "${{ steps.render.outputs.result }}"
+          DRYRUN_RESULTS: "${{ steps.dryrun.outputs.result }}"
+          DEPLOY_POSTCHECK_RESULTS: "${{ steps.deploy_postcheck.outputs.result }}"
+          IDEMPOTENT_SEQUENCE_RESULTS: "${{ steps.idempotent_sequence.outputs.result }}"
+          IDEMPOTENT_EVIDENCE_RESULTS: "${{ steps.idempotent_evidence.outputs.result }}"
+          SUBMISSION_RESULTS: "${{ steps.submission.outputs.result }}"
+        with:
+          runners: env_galaxy,scaffold,inventory,vars,templates,render,dryrun,deploy_postcheck,idempotent_sequence,idempotent_evidence,submission
