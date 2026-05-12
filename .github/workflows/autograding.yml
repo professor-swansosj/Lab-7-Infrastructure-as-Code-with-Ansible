@@ -253,4 +253,15 @@ jobs:
           IDEMPOTENT_EVIDENCE_RESULTS: "${{ steps.idempotent_evidence.outputs.result }}"
           SUBMISSION_RESULTS: "${{ steps.submission.outputs.result }}"
         with:
-          runners: env_galaxy,scaffold,inventory,vars,templates,render,dryrun,deploy_postcheck,idempotent_sequence,idempotent_evidence,submission
+          runners: |
+            env_galaxy
+            scaffold
+            inventory
+            vars
+            templates
+            render
+            dryrun
+            deploy_postcheck
+            idempotent_sequence
+            idempotent_evidence
+            submission
